@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from keras.preprocessing.image import ImageDataGenerator
 import math
+import keras
 
 lines = []
 with open('data2/driving_log.csv') as csvfile:
@@ -33,7 +34,7 @@ valid_datagen = ImageDataGenerator(featurewise_center=True, \
                                    samplewise_std_normalization=True
                                    )
         
-def generator(samples, datatype="valid", batch_size=2):
+def generator(samples, datatype="valid", batch_size=4):
     n_samples = len(samples)
     while(1):
         shuffle(samples)
@@ -97,13 +98,15 @@ def Inception(x, d_out):
     conv5x5 = Dropout(0.5)(conv5x5)
     
     # Inception Module Layer 4: MaxPooling -> 1x1 Convolution -> 1x1 Convolution -> 1x1 Convolution
-    maxpool = MaxPool2D(pool_size=(3,3), padding='same')(x)
+    maxpool = MaxPool2D(pool_size=(3,3), padding='same', strides=(1,1))(x)
     conv1x1d = Conv2D(d1, 1, padding='same', activation='relu')(maxpool)
     conv1x1d = Conv2D(d2, 1, padding='same', activation='relu')(conv1x1d)
     conv1x1d = Conv2D(d_out, 1, padding='same', activation='relu')(conv1x1d)
     conv1x1d = Dropout(0.5)(conv1x1d)
+
+    output = Concatenate(axis = 3)([conv1x1a, conv3x3, conv5x5, conv1x1d])
     
-    return Concatenate(axis=-1)([conv1x1a, conv3x3, conv5x5, conv1x1d])
+    return output
     
 inputs = Input(shape = (160, 320, 3))
 
@@ -133,7 +136,8 @@ x = Dropout(rate=0.5)(x)
 logits = Dense(1)(x)
 
 model = Model(inputs=inputs, outputs=logits)
-model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+Adam = keras.optimizers.Adam(lr=0.0005)
+model.compile(loss='mse', optimizer=Adam, metrics=['accuracy'])
 model.fit_generator(train_generator, steps_per_epoch=len(train_set), \
                     validation_data=validation_generator, validation_steps= \
                     len(valid_set), epochs=6)
