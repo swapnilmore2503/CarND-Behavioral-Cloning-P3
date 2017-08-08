@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from keras.preprocessing.image import ImageDataGenerator
+import math
 
 lines = []
 with open('data2/driving_log.csv') as csvfile:
@@ -74,15 +75,57 @@ from keras.models import Model
 from keras.layers import Flatten, Dense, Input, Dropout, Cropping2D
 from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import MaxPool2D
+from keras.layers.merge import Concatenate
 
+def Inception(x, d_out):
+    d1 = math.floor(d_out/4)
+    d2 = math.floor(d_out/2)
+    # Inception Module Layer 1: 1x1 Convolution
+    conv1x1a = Conv2D(d_out, 1, padding='same', activation='relu')(x)
+    conv1x1a = Dropout(0.5)(conv1x1a)
+    
+    # Inception Module Layer 2: 1x1 Convolution -> 3x3 Convolution -> 3x3 Convolution
+    conv1x1b = Conv2D(d1, 1, padding='same', activation='relu')(x)
+    conv3x3 = Conv2D(d2, 3, padding='same', activation='relu')(conv1x1b)
+    conv3x3 = Conv2D(d_out, 3, padding='same', activation='relu')(conv3x3)
+    conv3x3 = Dropout(0.5)(conv3x3)
+    
+    # Inception Module Layer 3: 1x1 Convolution -> 5x5 Convolution -> 5x5 Convolution
+    conv1x1c = Conv2D(d1, 1, padding='same', activation='relu')(x)
+    conv5x5 = Conv2D(d2, 5, padding='same', activation='relu')(conv1x1c)
+    conv5x5 = Conv2D(d_out, 5, padding='same', activation='relu')(conv5x5)
+    conv5x5 = Dropout(0.5)(conv5x5)
+    
+    # Inception Module Layer 4: MaxPooling -> 1x1 Convolution -> 1x1 Convolution -> 1x1 Convolution
+    maxpool = MaxPool2D(pool_size=(3,3), padding='same')(x)
+    conv1x1d = Conv2D(d1, 1, padding='same', activation='relu')(maxpool)
+    conv1x1d = Conv2D(d2, 1, padding='same', activation='relu')(conv1x1d)
+    conv1x1d = Conv2D(d_out, 1, padding='same', activation='relu')(conv1x1d)
+    conv1x1d = Dropout(0.5)(conv1x1d)
+    
+    return Concatenate(axis=-1)([conv1x1a, conv3x3, conv5x5, conv1x1d])
+    
 inputs = Input(shape = (160, 320, 3))
 
 x = Cropping2D(cropping=((60,20), (0,0)))(inputs)
-x = Conv2D(16, 5, padding='same', activation='relu')(x)
+x = Conv2D(3, 1, padding='same', activation='relu')(x)
+x = Conv2D(16, 3, padding='same', activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Inception(x, 16)
 x = MaxPool2D()(x)
-x = Conv2D(32, 5, padding='same', activation='relu')(x)
+x = Conv2D(64, 1, padding='same', activation='relu')(x)
+x = Conv2D(128, 5, padding='same', activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Inception(x, 128)
 x = MaxPool2D()(x)
+x = Conv2D(512, 1, padding='same', activation='relu')(x)
+x = Conv2D(256, 5, padding='same', activation='relu')(x)
+x = Dropout(0.5)(x)
 x = Flatten()(x)
+x = Dense(128, activation='relu')(x)
+x = Dropout(rate=0.5)(x)
+x = Dense(64, activation='relu')(x)
+x = Dropout(rate=0.5)(x)
 x = Dense(32, activation='relu')(x)
 x = Dropout(rate=0.5)(x)
 x = Dense(16, activation='relu')(x)
