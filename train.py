@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Sat Aug  5 00:29:57 2017
@@ -42,8 +43,9 @@ def generator(samples, datatype="valid", batch_size=2):
             for batch_sample in batch_samples:
                 for i in range(3):
                     source_path = batch_sample[i]
-                    filename = source_path.split('/')[-1]
-                    image = cv2.imread(filename)
+                    filename = source_path.split('\\')[-1]
+                    current_path = 'data2/IMG/' + filename
+                    image = cv2.imread(current_path)
                     images.append(image)
                     if(i == 1):
                         measurement = float(line[3]) + 1
@@ -55,15 +57,14 @@ def generator(samples, datatype="valid", batch_size=2):
                         measurement = float(line[3])
                         angles.append(measurement)
 
-            images = np.array(images)
-            angles = np.array(angles)
+            images = np.array(images, dtype = np.float64)
+            angles = np.array(angles, dtype = np.float64)
             if(datatype == "train"):
                 train_datagen.fit(images)
                 generate = train_datagen.flow(images, angles)
             else:
                 valid_datagen.fit(images)
                 generate = valid_datagen.flow(images, angles)
-            
             return generate
 
 train_generator = generator(train_set, datatype="train")
