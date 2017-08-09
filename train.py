@@ -26,17 +26,21 @@ train_datagen = ImageDataGenerator(featurewise_center=True, \
                                    featurewise_std_normalization=True, \
                                    samplewise_center=True, \
                                    samplewise_std_normalization=True,
-                                   horizontal_flip=True
+                                   horizontal_flip=True,
+                                   width_shift_range=0.2,
+                                   height_shift_range=0.05,
+                                   rescale=1./255
                                    )
 valid_datagen = ImageDataGenerator(featurewise_center=True, \
                                    featurewise_std_normalization=True, \
                                    samplewise_center=True, \
-                                   samplewise_std_normalization=True
+                                   samplewise_std_normalization=True,
+                                   rescale=1./255
                                    )
         
-def generator(samples, datatype="valid", batch_size=4):
-    n_samples = len(samples)
+def generator(samples, batch_size=4):
     while(1):
+        n_samples = len(samples)
         shuffle(samples)
         for offset in range(0, n_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
@@ -58,19 +62,20 @@ def generator(samples, datatype="valid", batch_size=4):
                     else:
                         measurement = float(line[3])
                         angles.append(measurement)
+    
+            images = np.array(images)
+            angles = np.array(angles)
+            yield shuffle(images, angles)
 
-            images = np.array(images, dtype = np.float64)
-            angles = np.array(angles, dtype = np.float64)
-            if(datatype == "train"):
-                train_datagen.fit(images)
-                generate = train_datagen.flow(images, angles)
-            else:
-                valid_datagen.fit(images)
-                generate = valid_datagen.flow(images, angles)
-            return generate
+train_images = generator(train_set)
+validation_images = generator(valid_set)
 
-train_generator = generator(train_set, datatype="train")
-validation_generator = generator(valid_set)
+for images, angles in train_images:
+    train_datagen.fit(images)
+    train_generator = train_datagen.flow(images, angles, batch_size=4)
+
+for images, angles in validation_images:
+    validation_generator = valid_datagen.flow(images, angles, batch_size=4)
 
 from keras.models import Model
 from keras.layers import Flatten, Dense, Input, Dropout, Cropping2D
@@ -104,7 +109,7 @@ def Inception(x, d_out):
     conv1x1d = Conv2D(d_out, 1, padding='same', activation='relu')(conv1x1d)
     conv1x1d = Dropout(0.5)(conv1x1d)
 
-    output = Concatenate(axis = 3)([conv1x1a, conv3x3, conv5x5, conv1x1d])
+    output = Concatenate(axis = -1)([conv1x1a, conv3x3, conv5x5, conv1x1d])
     
     return output
     
