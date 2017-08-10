@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 Created on Sat Aug  5 00:29:57 2017
@@ -10,9 +9,15 @@ import cv2
 import numpy as np 
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-from keras.preprocessing.image import ImageDataGenerator
+#from keras.preprocessing.image import ImageDataGenerator
 import math
 import keras
+from keras.models import Model
+from keras.layers import Flatten, Dense, Input, Dropout, Cropping2D
+from keras.layers.convolutional import Conv2D
+from keras.layers.pooling import MaxPool2D
+from keras.layers.merge import Concatenate
+import transform as tm
 
 lines = []
 with open('data2/driving_log.csv') as csvfile:
@@ -22,23 +27,23 @@ with open('data2/driving_log.csv') as csvfile:
 
 train_set, valid_set = train_test_split(lines, test_size=0.2)
 
-train_datagen = ImageDataGenerator(featurewise_center=True, \
-                                   featurewise_std_normalization=True, \
-                                   samplewise_center=True, \
-                                   samplewise_std_normalization=True,
-                                   horizontal_flip=True,
-                                   width_shift_range=0.2,
-                                   height_shift_range=0.05,
-                                   rescale=1./255
-                                   )
-valid_datagen = ImageDataGenerator(featurewise_center=True, \
-                                   featurewise_std_normalization=True, \
-                                   samplewise_center=True, \
-                                   samplewise_std_normalization=True,
-                                   rescale=1./255
-                                   )
+#train_datagen = ImageDataGenerator(featurewise_center=True, \
+#                                   featurewise_std_normalization=True, \
+#                                   samplewise_center=True, \
+#                                   samplewise_std_normalization=True,
+#                                   horizontal_flip=True,
+#                                   width_shift_range=0.2,
+#                                   height_shift_range=0.05,
+#                                   rescale=1./255
+#                                   )
+#valid_datagen = ImageDataGenerator(featurewise_center=True, \
+#                                   featurewise_std_normalization=True, \
+#                                   samplewise_center=True, \
+#                                   samplewise_std_normalization=True,
+#                                   rescale=1./255
+#                                   )
         
-def generator(samples, batch_size=4):
+def generator(samples, datatype = "test", batch_size=2):
     while(1):
         n_samples = len(samples)
         shuffle(samples)
@@ -52,36 +57,34 @@ def generator(samples, batch_size=4):
                     filename = source_path.split('\\')[-1]
                     current_path = 'data2/IMG/' + filename
                     image = cv2.imread(current_path)
+                    if(datatype != "train"):
+                        image = tm.normalize(image)
                     images.append(image)
                     if(i == 1):
-                        measurement = float(line[3]) + 1
+                        measurement = float(line[3]) + 0.2
                         angles.append(measurement)
                     elif(i == 2):
-                        measurement = float(line[3]) - 1
+                        measurement = float(line[3]) - 0.2
                         angles.append(measurement)
                     else:
                         measurement = float(line[3])
                         angles.append(measurement)
+                    if(datatype == "train"):
+                        for i in range(3):
+                            image_aug, flip = tm.augment(image)
+                            images.append(image_aug)
+                            if(flip == True):
+                                measure = -measurement
+                            else:
+                                measure = measurement
+                            angles.append(measure)
     
             images = np.array(images)
             angles = np.array(angles)
             yield shuffle(images, angles)
 
-train_images = generator(train_set)
-validation_images = generator(valid_set)
-
-for images, angles in train_images:
-    train_datagen.fit(images)
-    train_generator = train_datagen.flow(images, angles, batch_size=4)
-
-for images, angles in validation_images:
-    validation_generator = valid_datagen.flow(images, angles, batch_size=4)
-
-from keras.models import Model
-from keras.layers import Flatten, Dense, Input, Dropout, Cropping2D
-from keras.layers.convolutional import Conv2D
-from keras.layers.pooling import MaxPool2D
-from keras.layers.merge import Concatenate
+train_generator = generator(train_set, datatype="train")
+validation_generator = generator(valid_set)
 
 def Inception(x, d_out):
     d1 = math.floor(d_out/4)

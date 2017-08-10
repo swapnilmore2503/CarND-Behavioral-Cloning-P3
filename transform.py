@@ -7,8 +7,6 @@ Created on Sun Aug  6 16:48:24 2017
 
 import numpy as np
 import cv2
-import math
-import matplotlib as plt
 
 def translate(img, xlimit=4, ylimit=4):
     rows, cols, ch = img.shape
@@ -68,6 +66,18 @@ def shadow(img):
     
     img = cv2.cvtColor(img_hls,cv2.COLOR_HLS2RGB)
     return img
-    
-def rescale(img):
+   
+def normalize(img):
+    img = np.array(img, dtype=np.float32)
+    img = (img - 127.5)/127.5
+    return img
+
+def augment(img):
+    if(np.random.uniform() > 0.5):
+        img = flip(img)
+        flipped = True
+    img = bright(img)
+    img = contrast(img)
+    img = shadow(img)
+    return normalize(img), flipped
     
