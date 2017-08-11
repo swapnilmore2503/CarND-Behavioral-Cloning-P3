@@ -73,6 +73,7 @@ def normalize(img):
     return img
 
 def augment(img):
+    flipped = False
     if(np.random.uniform() > 0.5):
         img = flip(img)
         flipped = True

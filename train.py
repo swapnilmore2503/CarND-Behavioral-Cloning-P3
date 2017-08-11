@@ -43,7 +43,7 @@ train_set, valid_set = train_test_split(lines, test_size=0.2)
 #                                   rescale=1./255
 #                                   )
         
-def generator(samples, datatype = "test", batch_size=2):
+def generator(samples, datatype = "test", batch_size=1):
     while(1):
         n_samples = len(samples)
         shuffle(samples)
@@ -57,21 +57,21 @@ def generator(samples, datatype = "test", batch_size=2):
                     filename = source_path.split('\\')[-1]
                     current_path = 'data2/IMG/' + filename
                     image = cv2.imread(current_path)
-                    if(datatype != "train"):
-                        image = tm.normalize(image)
+                    image_copy = image.copy()
+                    image = tm.normalize(image)
                     images.append(image)
                     if(i == 1):
-                        measurement = float(line[3]) + 0.2
+                        measurement = float(line[3])
                         angles.append(measurement)
                     elif(i == 2):
-                        measurement = float(line[3]) - 0.2
+                        measurement = float(line[3])
                         angles.append(measurement)
                     else:
                         measurement = float(line[3])
                         angles.append(measurement)
                     if(datatype == "train"):
                         for i in range(3):
-                            image_aug, flip = tm.augment(image)
+                            image_aug, flip = tm.augment(image_copy)
                             images.append(image_aug)
                             if(flip == True):
                                 measure = -measurement
@@ -123,12 +123,14 @@ x = Conv2D(3, 1, padding='same', activation='relu')(x)
 x = Conv2D(16, 3, padding='same', activation='relu')(x)
 x = Dropout(0.5)(x)
 x = Inception(x, 16)
-x = MaxPool2D()(x)
+x = Inception(x, 16)
+x = Inception(x, 16)
+x = MaxPool2D(strides=(4,4))(x)
 x = Conv2D(64, 1, padding='same', activation='relu')(x)
 x = Conv2D(128, 5, padding='same', activation='relu')(x)
 x = Dropout(0.5)(x)
 x = Inception(x, 128)
-x = MaxPool2D()(x)
+x = MaxPool2D(strides=(4,4))(x)
 x = Conv2D(512, 1, padding='same', activation='relu')(x)
 x = Conv2D(256, 5, padding='same', activation='relu')(x)
 x = Dropout(0.5)(x)
@@ -144,11 +146,11 @@ x = Dropout(rate=0.5)(x)
 logits = Dense(1)(x)
 
 model = Model(inputs=inputs, outputs=logits)
-Adam = keras.optimizers.Adam(lr=0.0005)
+Adam = keras.optimizers.Adam(lr=0.01)
 model.compile(loss='mse', optimizer=Adam, metrics=['accuracy'])
 model.fit_generator(train_generator, steps_per_epoch=len(train_set), \
                     validation_data=validation_generator, validation_steps= \
-                    len(valid_set), epochs=6)
+                    len(valid_set), epochs=1)
 
 model.save('model.h5')
 print("Model Saved")
