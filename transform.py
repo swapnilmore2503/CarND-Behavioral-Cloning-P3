@@ -73,12 +73,8 @@ def normalize(img):
     return img
 
 def augment(img):
-    flipped = False
-    if(np.random.uniform() > 0.5):
-        img = flip(img)
-        flipped = True
     img = bright(img)
     img = contrast(img)
     img = shadow(img)
-    return normalize(img), flipped
+    return img #normalize(img)
     
