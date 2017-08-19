@@ -100,31 +100,31 @@ def CloNet(train_set, valid_set):
     inputs = Input(shape = (160, 320, 3))
 
     x = Lambda(lambda x: x / 255.0 - 0.5)(inputs)
-    x = Cropping2D(cropping=((70,25), (0,0)))(x)
+    x = Cropping2D(cropping=((70,25), (0,0)))(x) # Out Size: 65x320x3 
     #x = Lambda(lambda img: tf.image.resize_images(img, (66,200)))(x)
 
     x = Conv2D(24, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-               'relu')(x)
+               'relu')(x) # Out Size: 31x158x24 
 
     x = Conv2D(36, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-               'relu')(x)
+               'relu')(x) # Out Size: 14x77x36 
 
     x = Conv2D(48, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-               'relu')(x)
+               'relu')(x) # Out Size: 5x37x48 
 
     x = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding='valid', activation=\
-               'relu')(x)
+               'relu')(x) # Out Size: 3x35x64
 
     x = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding='valid', activation=\
-               'relu')(x)
+               'relu')(x) # Out Size: 1x33x64
 
-    x = Flatten()(x)
+    x = Flatten()(x) # Out Size: 2122
     x = Dropout(0.75)
-    x = Dense(100, activation='relu')(x)
-    x = Dense(50, activation='relu')(x)
-    x = Dense(10, activation='relu')(x)
+    x = Dense(100, activation='relu')(x) # Out Size: 100
+    x = Dense(50, activation='relu')(x) # Out Size: 50
+    x = Dense(10, activation='relu')(x) # Out Size: 10
 
-    logits = Dense(1)(x)
+    logits = Dense(1)(x) # Out Size: 1
 
     # Fit the model to the train images and validate the model
     model = Model(inputs=inputs, outputs=logits)
