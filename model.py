@@ -99,7 +99,7 @@ def CloNet(train_set, valid_set):
     # Nvidia Autonomous Model
     inputs = Input(shape = (160, 320, 3))
 
-    x = Lambda(lambda x: x / 255.0 - 0.5)(inputs)
+    x = Lambda(lambda x: x / 255.0 - 0.5)(inputs) # Out Size: 160x320x3
     x = Cropping2D(cropping=((70,25), (0,0)))(x) # Out Size: 65x320x3 
     #x = Lambda(lambda img: tf.image.resize_images(img, (66,200)))(x)
 
