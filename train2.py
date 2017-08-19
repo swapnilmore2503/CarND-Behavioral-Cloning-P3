@@ -10,20 +10,23 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 #from keras.preprocessing.image import ImageDataGenerator
-import math
 import keras
 from keras.models import Model
 from keras.layers import Flatten, Dense, Input, Dropout, Cropping2D, Lambda
-from keras.layers import Reshape
 from keras.layers.convolutional import Conv2D
-from keras.layers.pooling import MaxPool2D
-from keras.layers.merge import Concatenate
 import transform as tm
-from keras.backend import tf
 from keras import regularizers
+from keras.backend import tf
 
+foldr = '/Project 3 - Behavioral Cloning/CarND-Behavioral-Cloning-P3'
+drt = '/media/smore/Delta/Udacity/Self Driving/Projects' + foldr
 lines = []
-with open('data2/driving_log.csv', 'r') as csvfile:
+with open(drt + '/data3/driving_log.csv', 'r') as csvfile:
+    reader = csv.reader(csvfile)
+    for line in reader:
+        lines.append(line)
+
+with open(drt + '/data4/driving_log.csv', 'r') as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         lines.append(line)
@@ -45,8 +48,8 @@ train_set, valid_set = train_test_split(lines, test_size=0.2)
 #                                   samplewise_std_normalization=True,
 #                                   rescale=1./255
 #                                   )
-@vectorize        
-def generator(samples, datatype = "test", batch_size=32):
+      
+def generator(samples, datatype = "test", batch_size=128):
     while(1):
         n_samples = len(samples)
         shuffle(samples)
@@ -65,48 +68,35 @@ def generator(samples, datatype = "test", batch_size=32):
                 path_l = batch_sample[1]
                 path_r = batch_sample[2]
                 
-                filename = path_c.split('\\')[-1]
-                current_path = 'data2/IMG/' + filename
+                filename = path_c.split('/')[-1]
+                current_path = drt + '/data3/IMG/' + filename
                 image_c = cv2.imread(current_path)
                 
-                filename = path_l.split('\\')[-1]
-                current_path = 'data2/IMG/' + filename
+                filename = path_l.split('/')[-1]
+                current_path = drt + '/data3/IMG/' + filename
                 image_l = cv2.imread(current_path)
                 
-                filename = path_r.split('\\')[-1]
-                current_path = 'data2/IMG/' + filename
+                filename = path_r.split('/')[-1]
+                current_path = drt + '/data3/IMG/' + filename
                 image_r = cv2.imread(current_path)
-                
-                c_img = image_c.copy()
-                l_img = image_l.copy()
-                r_img = image_r.copy()
-                
+                # import pdb; pdb.set_trace()
 #                image_c = tm.normalize(image_c)
 #                image_l = tm.normalize(image_l)
 #                image_r = tm.normalize(image_r)
-                
+                c_img = image_c.copy()
+                l_img = image_l.copy()
+                r_img = image_r.copy()
+            
                 images.extend([image_c, image_l, image_r])
                 angles.extend([steer_c, steer_l, steer_r])
                               
                 if(datatype == "train"):
-                    for i in range(3):
-                        image_c_aug = tm.augment(c_img)
-                        image_l_aug = tm.augment(l_img)
-                        image_r_aug = tm.augment(r_img)
-                        
-                        if(np.random.uniform() > 0.333):
-                            image_c_aug = tm.flip(image_c_aug)
-                            image_l_aug = tm.flip(image_l_aug)
-                            image_r_aug = tm.flip(image_r_aug)
-                            mc = -1.0 * steer_c
-                            ml = -1.0 * steer_l
-                            mr = -1.0 * steer_r
-                        else:
-                            mc = steer_c
-                            ml = steer_l
-                            mr = steer_r
-                        images.extend([image_c_aug, image_l_aug, image_r_aug])
-                        angles.extend([mc, ml, mr])
+                    image_c_aug = tm.augment(c_img)
+                    image_l_aug = tm.augment(l_img)
+                    image_r_aug = tm.augment(r_img)
+
+                    images.extend([image_c_aug, image_l_aug, image_r_aug])
+                    angles.extend([steer_c, steer_l, steer_r])
     
             images = np.array(images)
             angles = np.array(angles)
@@ -117,40 +107,46 @@ validation_generator = generator(valid_set)
 
 inputs = Input(shape = (160, 320, 3))
 
- 
-x = Cropping2D(cropping=((50,20), (0,0)))(inputs)
-x = Lambda(lambda x: (x/127.5) - 1.0)(x) 
+x = Lambda(lambda x: x / 255.0 - 0.5)(inputs)
+
+x = Cropping2D(cropping=((70,25), (0,0)))(x)
+
+#x = Lambda(lambda img: tf.image.resize_images(img, (66,200)))(x)
 
 x = Conv2D(24, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-           'elu', kernel_regularizer=regularizers.l2(0.01))(x)
+           'relu')(x)
 #x = Dropout(0.5)(x)
 x = Conv2D(36, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-           'elu', kernel_regularizer=regularizers.l2(0.01))(x)
+           'relu')(x)
 #x = Dropout(0.5)(x)
 x = Conv2D(48, kernel_size=(5,5), strides=(2,2), padding='valid', activation=\
-           'elu', kernel_regularizer=regularizers.l2(0.01))(x)
+           'relu')(x)
 #x = Dropout(0.5)(x)
 x = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding='valid', activation=\
-           'elu', kernel_regularizer=regularizers.l2(0.01))(x)
+           'relu')(x)
 #x = Dropout(0.5)(x)
 x = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding='valid', activation=\
-           'elu', kernel_regularizer=regularizers.l2(0.01))(x)
+           'relu')(x)
 #x = Dropout(0.5)(x)
 x = Flatten()(x)
-x = Dense(100, activation='elu', kernel_regularizer=regularizers.l2(0.01))(x)
 #x = Dropout(0.5)(x)
-x = Dense(50, activation='elu', kernel_regularizer=regularizers.l2(0.01))(x)
+x = Dense(100, activation='relu')(x)
+          #activity_regularizer=regularizers.l2(0.01))"""(x)
 #x = Dropout(0.5)(x)
-x = Dense(10, activation='elu', kernel_regularizer=regularizers.l2(0.01))(x)
+x = Dense(50, activation='relu')(x)
+          #activity_regularizer=regularizers.l2(0.01))(x)
 #x = Dropout(0.5)(x)
-logits = Dense(1, activation='linear', kernel_regularizer=regularizers.l2(0.01))(x)
+x = Dense(10, activation='relu')(x)
+          #activity_regularizer=regularizers.l2(0.01))(x)
+#x = Dropout(0.5)(x)
+logits = Dense(1)(x) #, kernel_regularizer=regularizers.l2(0.01))(x)
 
 model = Model(inputs=inputs, outputs=logits)
 Adam = keras.optimizers.Adam()
 model.compile(loss='mse', optimizer=Adam)
-model.fit_generator(train_generator, steps_per_epoch=len(train_set), \
+model.fit_generator(train_generator, steps_per_epoch=len(train_set)/128, \
                     validation_data=validation_generator, validation_steps= \
-                    len(valid_set), epochs=1)
+                    len(valid_set)/128, epochs=1)
 
 model.save('model2.h5')
 print("Model Saved")
