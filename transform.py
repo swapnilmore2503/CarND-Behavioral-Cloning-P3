@@ -44,10 +44,10 @@ def contrast(img, c_limit = 50):
     return img1
 
 def shadow(img):
-    y_t = 32*np.random.uniform()
+    y_t = 320*np.random.uniform()
     x_t = 0
-    x_b = 32
-    y_b = 32*np.random.uniform()
+    x_b = 160
+    y_b = 320*np.random.uniform()
     
     img_hls = cv2.cvtColor(img,cv2.COLOR_BGR2HLS)
     shadow_mask = 0*img_hls[:,:,1]
