@@ -119,7 +119,7 @@ def CloNet(train_set, valid_set):
                'relu')(x) # Out Size: 1x33x64
 
     x = Flatten()(x) # Out Size: 2122
-    x = Dropout(0.75)
+    x = Dropout(0.75) # Out Size: 2122
     x = Dense(100, activation='relu')(x) # Out Size: 100
     x = Dense(50, activation='relu')(x) # Out Size: 50
     x = Dense(10, activation='relu')(x) # Out Size: 10
